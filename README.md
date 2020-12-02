@@ -1,0 +1,3 @@
+# goodenough
+
+See tests.
