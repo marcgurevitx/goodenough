@@ -82,7 +82,7 @@ def test_request_in_get_items():
 
 
 def test_review_items():
-    wi = None
+    si = None
 
     async def rule_one_tenth(request, item):  # not a meaningful rule, just illustrating example
         return item / 10
@@ -90,20 +90,53 @@ def test_review_items():
     async def get_items(request):
         return [1, 2, 3, 4, 5]
 
-    async def review_items(request, weighed_items):  # a good place for saving the info about the picked item (the first in weighed_items) back to a database
-        nonlocal wi
-        wi = weighed_items
+    async def review_items(request, scored_items):  # a good place for saving the info about the picked item (the first in weighed_items) back to a database
+        nonlocal si
+        si = scored_items
 
     ge = GoodEnough(get_items, review_items, rules=[rule_one_tenth])
     assert ge.pick({}) == 5
-    assert wi[0] == (5, 0.5)
-    assert wi[1] == (4, 0.4)
-    assert wi[2] == (3, 0.3)
-    assert wi[3] == (2, 0.2)
-    assert wi[4] == (1, 0.1)
+    assert si[0] == (5, 0.5)
+    assert si[1] == (4, 0.4)
+    assert si[2] == (3, 0.3)
+    assert si[3] == (2, 0.2)
+    assert si[4] == (1, 0.1)
 
 
-def test_xxxxxxxx():
+def test_review_items_should_be_coro_func():
+
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
+
+    def review_items(request, scored_items):  # forgot async!
+        pass
+
+    with raises(AssertionError, match=r"Expected coroutine function.*review_items"):
+        GoodEnough(get_items, review_items)
+
+
+def test_rules_weights():
+
+    async def rule_equals_2(request, item):
+        return 0.9 if item == 2 else 0.1
+
+    async def rule_equals_4(request, item):
+        return 0.9 if item == 4 else 0.1
+
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
+
+    ge = GoodEnough(
+        get_items,
+        rules={  # set two contradicting rules but give the second one greater weight
+            rule_equals_2: 1.0,
+            rule_equals_4: 2.0,
+        },
+    )
+    assert ge.pick({}) == 4  # rule_equals_4() wins
+
+
+def test_xxxxxxxxxxxx():
 
 
     55/0
@@ -111,5 +144,4 @@ def test_xxxxxxxx():
 
 
 # never return items w 0 coef (or let define strategy: retry n times, raise, still return)
-# rules weights
 # silent clamp? shouldn't we complain / throw warning?
