@@ -11,7 +11,7 @@ ScoredItem = collections.namedtuple("ScoredItem", "item, score")
 
 
 class GoodEnough:
-    """The class where all 'good enough' magic happens."""
+    """Class that picks items (see async_pick for the main logic)."""
 
     def __init__(self, get_items, review_items=None, *, rules=None):
         rules = rules or {}
@@ -36,6 +36,8 @@ class GoodEnough:
         for rule, rule_weight in self.rules.items():
             for idx in range(len(scored_items)):
                 scored_item = scored_items[idx]
+                if scored_item.score == 0:
+                    continue
                 score = await rule(request, scored_item.item)
                 score = clamp(score, 0., 1.)
                 score **= rule_weight

@@ -136,7 +136,31 @@ def test_rules_weights():
     assert ge.pick({}) == 4  # rule_equals_4() wins
 
 
+def test_skip_rules_for_items_with_0_score():
+
+    m = 0
+    async def rule_even(request, item):
+        nonlocal m
+        m += 1
+        return item % 2 == 0
+
+    n = 0
+    async def rule_count(request, item):
+        nonlocal n
+        n += 1
+        return 1
+
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
+
+    ge = GoodEnough(get_items, rules=[rule_even, rule_count])
+    assert ge.pick({}) == 2  # the first even
+    assert m == 5  # first rule applied to all items
+    assert n == 2  # second rule applied to only two items that have a non-0 score
+
+
 def test_xxxxxxxxxxxx():
+
 
 
     55/0
