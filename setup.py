@@ -14,4 +14,7 @@ setup(
     author_email="marcgurevitx@gmail.com",
     license="The Unlicense",
     py_modules=["goodenough"],
+    extras_require={
+        "web": "aiohttp[speedups]",
+    },
 )

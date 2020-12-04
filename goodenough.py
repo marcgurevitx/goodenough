@@ -1,6 +1,14 @@
 import asyncio
 import collections
 import inspect
+import json
+
+try:
+    from aiohttp import web
+except ImportError:
+    web = None
+
+GEW_PORT = 4181
 
 
 def clamp(x, low, high):
@@ -11,7 +19,12 @@ ScoredItem = collections.namedtuple("ScoredItem", "item, score")
 
 
 class GoodEnough:
-    """Class that picks items (see async_pick for the main logic)."""
+    """
+    The class that knows how to pick items.
+
+    See async_pick() for the core logic.
+    Call serve() to run a simple web server.
+    """
 
     def __init__(self, get_items, review_items=None, *, rules=None):
         rules = rules or {}
@@ -52,3 +65,20 @@ class GoodEnough:
         else:
             result = default
         return result
+
+    def serve(self, *, port=GEW_PORT):
+        """Runs aiohttp web server that responds to POST /fetch with an item."""
+        assert web, AssertionError("Install aiohttp or goodenough[web]")
+        app = web.Application()
+        app.add_routes([web.post("/fetch", self.fetch)])
+        web.run_app(app, port=port)
+
+    async def fetch(self, web_request):
+        """Calls async_pick() on a POST /fetch."""
+        assert web, AssertionError("Install aiohttp or goodenough[web]")
+        try:
+            request_data = await web_request.json()
+        except json.JSONDecodeError:
+            raise web.HTTPBadRequest(text="Got bad JSON")
+        response_data = await self.async_pick(request_data)
+        return web.json_response(response_data)

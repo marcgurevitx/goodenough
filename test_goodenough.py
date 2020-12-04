@@ -23,10 +23,10 @@ def test_get_items_should_be_coro_func():
 
 def test_rules():
 
-    async def rule_greatest(request, item):     # rule #1
+    async def rule_greatest(request, item):     # rule #1: the gratest
         return 1 - 1 / item
 
-    async def rule_even(request, item):         # rule #2
+    async def rule_even(request, item):         # rule #2: even
         return item % 2 == 0
 
     async def get_items(request):
@@ -48,7 +48,7 @@ def test_rules_should_be_coro_funcs():
         GoodEnough(get_items, rules=[rule_greatest])
 
 
-def test_clamped_coefs():
+def test_clamped_scores():
 
     async def rule_greatest_done_wrong(request, item):
         return item  # will get clamped inside 0..1, so in case of [1,2,3,4,5] will always be 1.
