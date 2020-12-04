@@ -24,11 +24,11 @@ class GoodEnough:
         except TypeError:
             self.rules = dict((r, 1.) for r in rules)
 
-    def pick(self, request):
+    def pick(self, request, *, default=None):
         """Call async_pick inside asyncio loop."""
-        return asyncio.run(self.async_pick(request))
+        return asyncio.run(self.async_pick(request, default=default))
 
-    async def async_pick(self, request):
+    async def async_pick(self, request, *, default=None):
         """Pick the best item from a sample."""
         scored_items = [
             ScoredItem(item, score=1.) for item in await self.get_items(request)
@@ -44,6 +44,11 @@ class GoodEnough:
                 score *= scored_item.score
                 scored_items[idx] = scored_item._replace(score=score)
         scored_items.sort(key=lambda i: i.score, reverse=True)
+        first = scored_items[0]
         if self.review_items:
-            await self.review_items(request, scored_items)
-        return scored_items[0].item
+            await self.review_items(request, scored_items, is_successful=(first.score > 0.))
+        if first.score > 0.:
+            result = first.item
+        else:
+            result = default
+        return result

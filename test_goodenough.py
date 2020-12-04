@@ -90,7 +90,7 @@ def test_review_items():
     async def get_items(request):
         return [1, 2, 3, 4, 5]
 
-    async def review_items(request, scored_items):  # a good place for saving the info about the picked item (the first in weighed_items) back to a database
+    async def review_items(request, scored_items, is_successful):  # a good place for saving the info about the picked item (the first in weighed_items) back to a database
         nonlocal si
         si = scored_items
 
@@ -108,7 +108,7 @@ def test_review_items_should_be_coro_func():
     async def get_items(request):
         return [1, 2, 3, 4, 5]
 
-    def review_items(request, scored_items):  # forgot async!
+    def review_items(request, scored_items, is_successful):  # forgot async!
         pass
 
     with raises(AssertionError, match=r"Expected coroutine function.*review_items"):
@@ -159,13 +159,38 @@ def test_skip_rules_for_items_with_0_score():
     assert n == 2  # second rule applied to only two items that have a non-0 score
 
 
-def test_xxxxxxxxxxxx():
+def test_pick_with_default():
+
+    async def rule_reject_all(request, item):
+        return 0
+
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
+
+    ge = GoodEnough(get_items, rules=[rule_reject_all])
+    assert ge.pick({}, default=77) == 77
 
 
+def test_is_successful():
+    s = None
 
-    55/0
+    async def rule_accept_all(request, item):
+        return 1
 
+    async def rule_reject_all(request, item):
+        return 0
 
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
 
-# never return items w 0 coef (or let define strategy: retry n times, raise, still return)
-# silent clamp? shouldn't we complain / throw warning?
+    async def review_items(request, scored_items, is_successful):
+        nonlocal s
+        s = is_successful
+
+    ge1 = GoodEnough(get_items, review_items, rules=[rule_accept_all])
+    assert ge1.pick({}, default=77) == 1
+    assert s is True
+
+    ge2 = GoodEnough(get_items, review_items, rules=[rule_reject_all])
+    assert ge2.pick({}, default=77) == 77
+    assert s is False
