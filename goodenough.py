@@ -28,8 +28,9 @@ class GoodEnough:
 
     def __init__(self, get_items, review_items=None, *, rules=None):
         rules = rules or {}
-        for function in filter(None.__ne__, [get_items, review_items, *rules]):
-            assert inspect.iscoroutinefunction(function), f"Expected coroutine function, got {function!r}"
+        for function in [get_items, review_items, *rules]:
+            if function:
+                assert inspect.iscoroutinefunction(function), f"Expected coroutine function, got {function!r}"
         self.get_items = get_items
         self.review_items = review_items
         try:
