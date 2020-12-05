@@ -119,7 +119,7 @@ from goodenough import GoodEnough, GoodEnoughResult
 
 async def review_result(request, result, is_successful):
     if is_successful:
-        result["dtPpicked"] = datetime.datetime.now(datetime.timezone.utc)
+        result["dtPicked"] = datetime.datetime.now(datetime.timezone.utc)
     return GoodEnoughResult(result)
 
 g = GoodEnough(
@@ -151,7 +151,7 @@ This is how you can turn the previous example into a web server.
 
 async def review_result(request, result, is_successful):
     if is_successful:
-        result["dtPpicked"] = str(datetime.datetime.now(datetime.timezone.utc))
+        result["dtPicked"] = str(datetime.datetime.now(datetime.timezone.utc))
         result["_id"] = str(result["_id"])
     return GoodEnoughResult(result)
 
@@ -168,6 +168,6 @@ $ curl -s -XPOST http://localhost:9000/fetch -d'{"size": 5, "foo": 15}' | jq .
   "_id": "5fcb503f107390ce97e7d04f",
   "foo": 16,
   "pickedCount": 9,
-  "dtPpicked": "2020-12-05 14:48:46.471336+00:00"
+  "dtPicked": "2020-12-05 14:48:46.471336+00:00"
 }
 ```
