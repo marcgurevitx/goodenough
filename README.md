@@ -2,6 +2,10 @@
 
 A small Python lib that helps one to pick items from their collections / storages.
 
+```bash
+pip install goodenough
+```
+
 It's designed for tasks where you need a random item that is also not complete garbage like selecting the next song from a songs database to play on the radio.
 
 To use this lib you should tell it how to get the sample of items (`get_items`) and how to sort them from good to bad (`rules`).
