@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="goodenough",
-    version="0.0",
+    version="0.0.1",
     description="Lib to pick the \"best\" item from a random sample",
     long_description=long_description,
     long_description_content_type="text/markdown",
