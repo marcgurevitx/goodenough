@@ -79,8 +79,7 @@ class GoodEnough:
         """Review the items after rules applied and choose the best result."""
         if self.review_items:
             _throw_away = await self.review_items(request, scored_items, is_successful=(scored_items[0].score > 0.))
-            if _throw_away is not None:
-                raise Exception(f"You should not return things other than None from review_items(); got {_throw_away!r}")
+            assert _throw_away is None, f"You should not return things other than None from review_items(); got {_throw_away!r}"
         first = scored_items[0]
         is_successful = first.score > 0.
         if is_successful:
@@ -89,21 +88,20 @@ class GoodEnough:
             result = default
         if self.review_result:
             wrapped_result = await self.review_result(request, result, is_successful=is_successful)
-            if not isinstance(wrapped_result, GoodEnoughResult):
-                raise Exception(f"You must return GoodEnoughResult() from review_result(); got {wrapped_result!r}")
+            assert isinstance(wrapped_result, GoodEnoughResult), f"You must return GoodEnoughResult() from review_result(); got {wrapped_result!r}"
             result = wrapped_result.value
         return result
 
     def serve(self, *, port=GEW_PORT):
         """Runs aiohttp web server that responds to POST /fetch with an item."""
-        assert web, AssertionError("Install aiohttp or goodenough[web]")
+        assert web, "Install aiohttp or goodenough[web]"
         app = web.Application()
         app.add_routes([web.post("/fetch", self._fetch)])
         web.run_app(app, port=port)
 
     async def _fetch(self, web_request):
         """Calls async_pick() on a POST /fetch."""
-        assert web, AssertionError("Install aiohttp or goodenough[web]")
+        assert web, "Install aiohttp or goodenough[web]"
         try:
             request_data = await web_request.json()
         except json.JSONDecodeError:
