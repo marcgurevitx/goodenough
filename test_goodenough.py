@@ -1,6 +1,6 @@
 from pytest import raises
 
-from goodenough import GoodEnough
+from goodenough import GoodEnough, GoodEnoughResult
 
 
 def test_minimal_example():
@@ -217,7 +217,8 @@ def test_review_result():
     async def review_result(request, result, is_successful):
         nonlocal s
         s = is_successful
-        return result + 100
+        r = result + 100
+        return GoodEnoughResult(r)  # review_result() MUST return and MUST wrap its return value in GoodEnoughResult()
 
     ge = GoodEnough(
         get_items,

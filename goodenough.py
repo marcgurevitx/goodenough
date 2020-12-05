@@ -17,6 +17,12 @@ def clamp(x, low, high):
 
 ScoredItem = collections.namedtuple("ScoredItem", "item, score")
 
+class GoodEnoughResult:
+    """Simple wrapper for values returned by `review_result` callback."""
+
+    def __init__(self, value, /):
+        self.value = value
+
 
 class GoodEnough:
     """
@@ -26,7 +32,7 @@ class GoodEnough:
     Call serve() to run a simple web server.
     """
 
-    def __init__(self, get_items, *, review_items=None, review_result=None, rules=None):
+    def __init__(self, get_items, review_items=None, review_result=None, *, rules=None):
         rules = rules or {}
         for function in [get_items, review_items, review_result, *rules]:
             if function:
@@ -71,18 +77,21 @@ class GoodEnough:
 
     async def _pick_result(self, request, scored_items, default):
         """Review the items after rules applied and choose the best result."""
-        first = scored_items[0]
-        is_successful = first.score > 0.
         if self.review_items:
-            _throw_away = await self.review_items(request, scored_items, is_successful=is_successful)
+            _throw_away = await self.review_items(request, scored_items, is_successful=(scored_items[0].score > 0.))
             if _throw_away is not None:
                 raise Exception(f"You should not return things other than None from review_items(); got {_throw_away!r}")
+        first = scored_items[0]
+        is_successful = first.score > 0.
         if is_successful:
             result = first.item
         else:
             result = default
         if self.review_result:
-            result = await self.review_result(request, result, is_successful=is_successful)
+            wrapped_result = await self.review_result(request, result, is_successful=is_successful)
+            if not isinstance(wrapped_result, GoodEnoughResult):
+                raise Exception(f"You must return GoodEnoughResult() from review_result(); got {wrapped_result!r}")
+            result = wrapped_result.value
         return result
 
     def serve(self, *, port=GEW_PORT):
