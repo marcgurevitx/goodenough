@@ -26,13 +26,14 @@ class GoodEnough:
     Call serve() to run a simple web server.
     """
 
-    def __init__(self, get_items, review_items=None, *, rules=None):
+    def __init__(self, get_items, *, review_items=None, review_result=None, rules=None):
         rules = rules or {}
-        for function in [get_items, review_items, *rules]:
+        for function in [get_items, review_items, review_result, *rules]:
             if function:
                 assert inspect.iscoroutinefunction(function), f"Expected coroutine function, got {function!r}"
         self.get_items = get_items
         self.review_items = review_items
+        self.review_result = review_result
         try:
             self.rules = dict(rules)
         except TypeError:
@@ -47,6 +48,16 @@ class GoodEnough:
         scored_items = [
             ScoredItem(item, score=1.) for item in await self.get_items(request)
         ]
+        await self._apply_rules(request, scored_items)
+        scored_items.sort(key=lambda i: i.score, reverse=True)
+        result = await self._pick_result(request, scored_items, default)
+        return result
+
+    async def _apply_rules(self, request, scored_items):
+        """Apply rules functions to the array of selected items.
+
+        The array of items is modified in place.
+        """
         for rule, rule_weight in self.rules.items():
             for idx in range(len(scored_items)):
                 scored_item = scored_items[idx]
@@ -57,24 +68,31 @@ class GoodEnough:
                 score **= rule_weight
                 score *= scored_item.score
                 scored_items[idx] = scored_item._replace(score=score)
-        scored_items.sort(key=lambda i: i.score, reverse=True)
+
+    async def _pick_result(self, request, scored_items, default):
+        """Review the items after rules applied and choose the best result."""
         first = scored_items[0]
+        is_successful = first.score > 0.
         if self.review_items:
-            await self.review_items(request, scored_items, is_successful=(first.score > 0.))
-        if first.score > 0.:
+            _throw_away = await self.review_items(request, scored_items, is_successful=is_successful)
+            if _throw_away is not None:
+                raise Exception(f"You should not return things other than None from review_items(); got {_throw_away!r}")
+        if is_successful:
             result = first.item
         else:
             result = default
+        if self.review_result:
+            result = await self.review_result(request, result, is_successful=is_successful)
         return result
 
     def serve(self, *, port=GEW_PORT):
         """Runs aiohttp web server that responds to POST /fetch with an item."""
         assert web, AssertionError("Install aiohttp or goodenough[web]")
         app = web.Application()
-        app.add_routes([web.post("/fetch", self.fetch)])
+        app.add_routes([web.post("/fetch", self._fetch)])
         web.run_app(app, port=port)
 
-    async def fetch(self, web_request):
+    async def _fetch(self, web_request):
         """Calls async_pick() on a POST /fetch."""
         assert web, AssertionError("Install aiohttp or goodenough[web]")
         try:
