@@ -12,13 +12,13 @@ To use this lib you should tell it how to get the sample of items (`get_items`) 
 
 Optionaly, you can also reflect on how the items got sorted and which item has won (`review_items`, `review_result`).
 
-# Callbacks
+## Callbacks
 
 All callbacks should be async in case you want to do I/O stuff (like talking to a storage).
 
 Every callback's first argument should be `request` -- an opaque data passed to `.pick()` or `.async_pick()` (in case of a web server started by `.serve()`, the `request` is JSON-deserialized POST body).
 
-Here we define `get_items` callback that selects random documents from Mongo:
+Here we define `get_items` callback that selects random documents from Mongo (but it can be any data source of your choice):
 
 ```python
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -119,7 +119,7 @@ from goodenough import GoodEnough, GoodEnoughResult
 
 async def review_result(request, result, is_successful):
     if is_successful:
-        result["dtPpicked"] = datetime.datetime.now(datetime.timezone.utc)
+        result["dtPicked"] = datetime.datetime.now(datetime.timezone.utc)
     return GoodEnoughResult(result)
 
 g = GoodEnough(
@@ -129,4 +129,47 @@ g = GoodEnough(
     rules=[ rule_foo ],
 )
 print(g.pick(request={"size": 5, "foo": 15}))
+```
+
+## Web server
+
+This lib has a small web server capable of returning a picked item in response to `POST /fetch`.
+
+It requires `aiohttp`, so either `pip install aiohttp` or `pip install goodenough[web]`.
+
+To start the web server call `.serve()`.
+
+The `request` parameter to the callbacks will be constructed by JSON-deserializing of the web request's body.
+
+The response body will be the JSON-serialized result from `*pick()`.
+
+Let's again update our previous example:
+
+(To avoid JSON error trying to serialize Mongo's ObjectId, we will convert it to `str` in a new version of the `review_result` callback.)
+
+```python
+
+#...
+
+async def review_result(request, result, is_successful):
+    if is_successful:
+        result["dtPicked"] = str(datetime.datetime.now(datetime.timezone.utc))
+        result["_id"] = str(result["_id"])
+    return GoodEnoughResult(result)
+
+#...
+
+g.serve(port=9000)  # the default port is 4181 for no comprehensible reason
+```
+
+And here we call it:
+
+```bash
+$ curl -s -XPOST http://localhost:9000/fetch -d'{"size": 5, "foo": 15}' | jq .
+{
+  "_id": "5fcb503f107390ce97e7d04f",
+  "foo": 16,
+  "pickedCount": 9,
+  "dtPicked": "2020-12-05 14:48:46.471336+00:00"
+}
 ```
