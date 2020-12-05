@@ -35,7 +35,7 @@ g = GoodEnough(get_items)
 print(g.pick(request={"size": 1}))  # should print a random document from test.things
 ```
 
-In the `request` variable we pass the `"size"` of a sample equals to 1.
+In `request` we pass `"size"` equals to 1 to select one random document.
 
 We could pass a greater size value, but `.pick()` and `.async_pick()` only return one result, so in this example it wouldn't be useful.
 
@@ -61,17 +61,17 @@ g = GoodEnough(
 )
 print(g.pick(request={"size": 5, "foo": 15}))
 ```
-When you supply many rules, the resulting score of an item will be a product of scores returned from the `rules` functions.
+Many rules can be supplied, in which case the resulting score of an item will be a product of scores returned from the `rules` functions.
 
-`goodenough` supports rules weights. See tests.
+`goodenough` also supports rules weights. See tests.
 
 If a rule functions returns `0.`, the item is then never returned by `.pick()`.
 
 If each item in a sample gains score `0.`, the `None` is returned, or if you supply `default=` parameter to `.pick()`, that is returned.
 
-Optional `review_items` callback is invoked after all rules are applied and the items got sorted by the final scores.
+The `review_items` callback (if it's defined) is invoked after all rules are applied and the items got sorted from "best" to "worst" by their scores.
 
-It can be used for example to communicate information back to the database about last resulting scores.
+This callback can be used for example to communicate information back to the database about last resulting scores.
 
 Its second argument `scored_items` is a list of named pairs `[... (item=item, score=score) ...]`.
 
@@ -103,11 +103,11 @@ g = GoodEnough(
 print(g.pick(request={"size": 5, "foo": 15}))
 ```
 
-Another optional callback is `review_result` that receives only the picked item and can be used to modify it.
+Another optional callback is `review_result` that receives the picked item and can modify it.
 
 This callback must return and the returned value must be a `GoodEnoughResult` object, see below.
 
-Even if you're not going to modify the result in this callback, you have to explicitely write `return GoodEnoughResult(result)`.
+Even if you're not going to modify the result in this callback, you have to explicitly write `return GoodEnoughResult(result)`.
 
 Here we again extend the previous example by writing a callback that will add current datetime to the item before returning it from `.pick()`.
 
