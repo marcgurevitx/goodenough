@@ -1,6 +1,6 @@
 from pytest import raises
 
-from goodenough import GoodEnough
+from goodenough import GoodEnough, GoodEnoughResult
 
 
 def test_minimal_example():
@@ -94,7 +94,11 @@ def test_review_items():
         nonlocal si
         si = scored_items
 
-    ge = GoodEnough(get_items, review_items, rules=[rule_one_tenth])
+    ge = GoodEnough(
+        get_items,
+        review_items=review_items,
+        rules=[rule_one_tenth],
+    )
     assert ge.pick({}) == 5
     assert si[0] == (5, 0.5)
     assert si[1] == (4, 0.4)
@@ -112,7 +116,7 @@ def test_review_items_should_be_coro_func():
         pass
 
     with raises(AssertionError, match=r"Expected coroutine function.*review_items"):
-        GoodEnough(get_items, review_items)
+        GoodEnough(get_items, review_items=review_items)
 
 
 def test_rules_weights():
@@ -187,10 +191,38 @@ def test_is_successful():
         nonlocal s
         s = is_successful
 
-    ge1 = GoodEnough(get_items, review_items, rules=[rule_accept_all])
+    ge1 = GoodEnough(
+        get_items,
+        review_items=review_items,
+        rules=[rule_accept_all],
+    )
     assert ge1.pick({}, default=77) == 1
     assert s is True
 
-    ge2 = GoodEnough(get_items, review_items, rules=[rule_reject_all])
+    ge2 = GoodEnough(
+        get_items,
+        review_items=review_items,
+        rules=[rule_reject_all],
+    )
     assert ge2.pick({}, default=77) == 77
     assert s is False
+
+
+def test_review_result():
+
+    async def get_items(request):
+        return [1, 2, 3, 4, 5]
+
+    s = None
+    async def review_result(request, result, is_successful):
+        nonlocal s
+        s = is_successful
+        r = result + 100
+        return GoodEnoughResult(r)  # review_result() MUST return and MUST wrap its return value in GoodEnoughResult()
+
+    ge = GoodEnough(
+        get_items,
+        review_result=review_result,
+    )
+    assert ge.pick({}) == 1 + 100
+    assert s is True
