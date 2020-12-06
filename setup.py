@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 setup(
     name="goodenough",
     version="0.0.2",
-    description="Lib to pick the \"best\" item from a random sample",
+    description="Lib to pick the \"best\" item from a collection or storage",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/marcgurevitx/goodenough",
